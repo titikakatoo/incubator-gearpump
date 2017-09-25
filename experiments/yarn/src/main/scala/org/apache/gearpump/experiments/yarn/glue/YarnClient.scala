@@ -18,9 +18,11 @@
 
 package org.apache.gearpump.experiments.yarn.glue
 
+import akka.http.scaladsl.model.headers.CacheDirectives.public
 import org.apache.gearpump.experiments.yarn.glue.Records._
 import org.apache.gearpump.util.LogUtil
 import org.apache.hadoop.yarn.client.api
+import org.apache.hadoop.yarn.conf.YarnConfiguration
 
 /**
  * Adapter for api.YarnClient
@@ -29,6 +31,7 @@ class YarnClient(yarn: YarnConfig) {
 
   val LOG = LogUtil.getLogger(getClass)
 
+  val yarnConf: YarnConfiguration = yarn.conf
   private val client: api.YarnClient = api.YarnClient.createYarnClient
   client.init(yarn.conf)
   client.start()
