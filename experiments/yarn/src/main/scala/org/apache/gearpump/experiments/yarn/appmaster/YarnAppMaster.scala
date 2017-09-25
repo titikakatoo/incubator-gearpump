@@ -18,14 +18,10 @@
 
 package org.apache.gearpump.experiments.yarn.appmaster
 
-import java.io.IOException
 import java.util.concurrent.TimeUnit
-
 import akka.actor._
 import akka.util.Timeout
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
-import org.apache.commons.httpclient.HttpClient
-import org.apache.commons.httpclient.methods.GetMethod
 import org.apache.gearpump.cluster.ClientToMaster._
 import org.apache.gearpump.cluster.ClusterConfig
 import org.apache.gearpump.cluster.main.{ArgumentsParser, CLIOption}
@@ -35,8 +31,8 @@ import org.apache.gearpump.experiments.yarn.glue.{NMClient, RMClient, YarnConfig
 import org.apache.gearpump.transport.HostPort
 import org.apache.gearpump.util._
 import org.slf4j.Logger
-
 import scala.collection.JavaConverters._
+import scala.collection.mutable.Queue
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
@@ -258,7 +254,7 @@ class YarnAppMaster(rmClient: RMClient, nmClient: NMClient,
     LOG.info(s"Launch Master on container " + container.getNodeHttpAddress)
     val host = container.getNodeId.getHost
 
-    val port = 20205
+    val port = (if (getReservedMasterPorts.isEmpty) Util.findFreePort() else getReservedMasterPorts.dequeue()).asInstanceOf[Int]
 
     LOG.info("=============PORT" + port)
     val masterCommand = MasterCommand(akkaConf, rootPath, HostPort(host, port))
@@ -284,6 +280,7 @@ class YarnAppMaster(rmClient: RMClient, nmClient: NMClient,
 }
 
 object YarnAppMaster extends AkkaApp with ArgumentsParser {
+
   val LOG: Logger = LogUtil.getLogger(getClass)
 
   override val options: Array[(String, CLIOption[Any])] = Array(
@@ -370,5 +367,14 @@ object YarnAppMaster extends AkkaApp with ArgumentsParser {
     import org.apache.gearpump.experiments.yarn.client.AppMasterResolver
 
     AppMasterResolver.resolveAppMasterAddress(report, system)
+  }
+
+
+  def getReservedMasterPorts: Queue[Int] = {
+    var reservedMasterPorts = Queue[Int]()
+    val upperPortRange = ConfigFactory.load().getInt(MASTER_PORT_RANGE_UPPER)
+    val lowerPortRange = ConfigFactory.load().getInt(MASTER_PORT_RANGE_LOWER)
+    val ports = (lowerPortRange to upperPortRange).toList
+    reservedMasterPorts ++= ports
   }
 }

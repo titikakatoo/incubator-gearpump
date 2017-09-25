@@ -32,6 +32,8 @@ object Constants {
   val MASTER_COMMAND = "gearpump.yarn.master.command"
   val MASTER_MEMORY = "gearpump.yarn.master.memory"
   val MASTER_VCORES = "gearpump.yarn.master.vcores"
+  val MASTER_PORT_RANGE_LOWER = "gearpump.yarn.master.port.range.lower"
+  val MASTER_PORT_RANGE_UPPER = "gearpump.yarn.master.port.range.upper"
 
   val WORKER_COMMAND = "gearpump.yarn.worker.command"
   val WORKER_CONTAINERS = "gearpump.yarn.worker.containers"
