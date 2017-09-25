@@ -19,9 +19,9 @@
 package org.apache.gearpump.services.main
 
 import java.util.Random
+
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Route
@@ -29,7 +29,6 @@ import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigValueFactory
 import org.slf4j.Logger
 import sun.misc.BASE64Encoder
-
 import org.apache.gearpump.cluster.ClusterConfig
 import org.apache.gearpump.cluster.main.{ArgumentsParser, CLIOption, Gear}
 import org.apache.gearpump.cluster.master.MasterProxy
@@ -50,7 +49,7 @@ object Services extends AkkaApp with ArgumentsParser {
   override val description = "UI Server"
 
   override def akkaConfig: Config = {
-    ClusterConfig.ui()
+    ClusterConfig.ui().withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(0))
   }
 
   override def help(): Unit = {
@@ -64,9 +63,11 @@ object Services extends AkkaApp with ArgumentsParser {
   override def main(inputAkkaConf: Config, args: Array[String]): Unit = {
 
     val argConfig = parse(args)
+
     var akkaConf =
       if (argConfig.exists(Gear.OPTION_CONFIG)) {
         ClusterConfig.ui(argConfig.getString(Gear.OPTION_CONFIG))
+          .withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(0))
       } else {
         inputAkkaConf
       }

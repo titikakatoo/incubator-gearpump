@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor._
 import akka.util.Timeout
-import com.typesafe.config.ConfigValueFactory
+import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import org.apache.commons.httpclient.HttpClient
 import org.apache.commons.httpclient.methods.GetMethod
 import org.apache.gearpump.cluster.ClientToMaster._
@@ -292,13 +292,16 @@ object YarnAppMaster extends AkkaApp with ArgumentsParser {
   )
 
   override def akkaConfig: Config = {
-    ClusterConfig.ui()
+    val oldConfig = ClusterConfig.ui()
+    val appMasterConfig = ConfigFactory.parseString("akka.remote.netty.tcp.port=20204")
+    appMasterConfig.withFallback(oldConfig)
   }
 
   override def main(akkaConf: Config, args: Array[String]): Unit = {
     implicit val timeout = Timeout(5, TimeUnit.SECONDS)
     implicit val system = ActorSystem("GearpumpAM", akkaConf)
 
+    LOG.info("akkaConfig" + akkaConf.entrySet())
     val yarnConf = new YarnConfig()
 
     val confDir = parse(args).getString("conf")
@@ -310,7 +313,7 @@ object YarnAppMaster extends AkkaApp with ArgumentsParser {
     val rmClient = new RMClient(yarnConf)
     val nmClient = new NMClient(yarnConf, akkaConf)
     val appMaster = system.actorOf(Props(new YarnAppMaster(rmClient,
-      nmClient, packagePath, confDir, UIService)))
+      nmClient, packagePath, confDir, UIService)), "appMaster")
 
     val daemon = system.actorOf(Props(new Daemon(appMaster)))
     Await.result(system.whenTerminated, Duration.Inf)
@@ -364,22 +367,8 @@ object YarnAppMaster extends AkkaApp with ArgumentsParser {
   case class WorkerInfo(id: ContainerId, nodeId: NodeId)
 
   def getAppMaster(report: ApplicationReport, system: ActorSystem): ActorRef = {
-    val client = new HttpClient()
-    val appMasterPath = s"${report.getTrackingURL}supervisor-actor-path"
-    val get = new GetMethod(appMasterPath)
-    var status = client.executeMethod(get)
+    import org.apache.gearpump.experiments.yarn.client.AppMasterResolver
 
-    if (status != 200) {
-      // Sleeps a little bit, and try again
-      Thread.sleep(3000)
-      status = client.executeMethod(get)
-    }
-
-    if (status == 200) {
-      AkkaHelper.actorFor(system, get.getResponseBodyAsString)
-    } else {
-      throw new IOException("Fail to resolve AppMaster address, please make sure " +
-        s"${report.getTrackingURL} is accessible...")
-    }
+    AppMasterResolver.resolveAppMasterAddress(report, system)
   }
 }
