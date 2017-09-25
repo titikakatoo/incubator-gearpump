@@ -27,7 +27,7 @@ class JarStoreServer(jarStoreRootPath: String) extends Actor with Stash {
   private val host = context.system.settings.config.getString(Constants.GEARPUMP_HOSTNAME)
   private val jarStore = JarStore.get(jarStoreRootPath)
   jarStore.init(context.system.settings.config)
-  private val server = new FileServer(context.system, host, 0, jarStore)
+  private val server = new FileServer(context.system, host, 20206, jarStore)
   implicit val timeout = Constants.FUTURE_TIMEOUT
   implicit val executionContext = context.dispatcher
 

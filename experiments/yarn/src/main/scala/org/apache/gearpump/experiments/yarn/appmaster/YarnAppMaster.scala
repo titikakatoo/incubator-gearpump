@@ -258,7 +258,7 @@ class YarnAppMaster(rmClient: RMClient, nmClient: NMClient,
     LOG.info(s"Launch Master on container " + container.getNodeHttpAddress)
     val host = container.getNodeId.getHost
 
-    val port = Util.findFreePort().get
+    val port = 20205
 
     LOG.info("=============PORT" + port)
     val masterCommand = MasterCommand(akkaConf, rootPath, HostPort(host, port))

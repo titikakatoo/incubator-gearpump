@@ -19,14 +19,13 @@
 package org.apache.gearpump.util
 
 import java.util.concurrent.{TimeUnit, TimeoutException}
+
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success, Try}
-
 import akka.actor._
-import com.typesafe.config.Config
+import com.typesafe.config.{Config, ConfigValueFactory}
 import org.slf4j.Logger
-
 import org.apache.gearpump.cluster.ClusterConfig
 import org.apache.gearpump.util.LogUtil.ProcessType
 
@@ -130,7 +129,9 @@ object ActorSystemBooter {
         context.watch(actor)
       case create@CreateActor(props: Props, name: String) =>
         LOG.info(s"creating actor $name")
-        val actor = Try(context.actorOf(props, name))
+        val akkaConfig = context.system.settings.config.withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(20208))
+        val system = ActorSystem.create("AppMaster", akkaConfig)
+        val actor = Try(system.actorOf(props, name))
         actor match {
           case Success(actor) =>
             sender ! ActorCreated(actor, name)
