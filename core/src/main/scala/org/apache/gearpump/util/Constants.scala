@@ -50,6 +50,7 @@ object Constants {
   val GEARPUMP_HOSTNAME = "gearpump.hostname"
   val GEARPUMP_APPMASTER_ARGS = "gearpump.appmaster.vmargs"
   val GEARPUMP_APPMASTER_EXTRA_CLASSPATH = "gearpump.appmaster.extraClasspath"
+  val GEARPUMP_APPMASTER_PORT = "gearpump.appmaster.port"
   val GEARPUMP_EXECUTOR_ARGS = "gearpump.executor.vmargs"
   val GEARPUMP_EXECUTOR_EXTRA_CLASSPATH = "gearpump.executor.extraClasspath"
   val GEARPUMP_LOG_DAEMON_DIR = "gearpump.log.daemon.dir"
@@ -59,12 +60,12 @@ object Constants {
   // Id used to identity Master JVM process in low level resource manager like YARN.
   // In YARN, it means the container Id.
   val GEARPUMP_MASTER_RESOURCE_MANAGER_CONTAINER_ID =
-    "gearpump.master-resource-manager-container-id"
+  "gearpump.master-resource-manager-container-id"
 
   // Id used to identity Worker JVM process in low level resource manager like YARN.
   // In YARN, it means the container Id.
   val GEARPUMP_WORKER_RESOURCE_MANAGER_CONTAINER_ID =
-    "gearpump.worker-resource-manager-container-id"
+  "gearpump.worker-resource-manager-container-id"
 
   // true or false
   val GEARPUMP_REMOTE_DEBUG_EXECUTOR_JVM = "gearpump.remote-debug-executor-jvm"
@@ -103,6 +104,7 @@ object Constants {
 
   // Where the jar is stored at. It can be a HDFS, or a local disk.
   val GEARPUMP_APP_JAR_STORE_ROOT_PATH = "gearpump.jarstore.rootpath"
+  val GEARPUMP_APP_JAR_STORE_PORT = "gearpump.jarstore.port"
 
   // Uses java property -Dgearpump.config.file=xxx.conf to set customized configuration
   // Otherwise application.conf in classpath will be loaded

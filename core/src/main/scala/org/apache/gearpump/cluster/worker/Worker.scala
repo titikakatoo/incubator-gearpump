@@ -350,7 +350,8 @@ private[cluster] object Worker {
         Option(jvmConfig.executorAkkaConfig)
       }.getOrElse(ConfigFactory.empty())
 
-      resolveExecutorConfig(workerConfig, submissionConfig)
+      val conf = resolveExecutorConfig(workerConfig, submissionConfig)
+      conf.withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(0))
     }
 
     // For some config, worker has priority, for others, user Application submission config

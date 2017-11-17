@@ -19,9 +19,10 @@
 package org.apache.gearpump.experiments.yarn.appmaster
 
 import java.util.concurrent.TimeUnit
+
 import akka.actor._
 import akka.util.Timeout
-import com.typesafe.config.ConfigValueFactory
+import com.typesafe.config.{Config, ConfigValueFactory}
 import org.apache.gearpump.cluster.ClientToMaster._
 import org.apache.gearpump.cluster.ClusterConfig
 import org.apache.gearpump.cluster.main.{ArgumentsParser, CLIOption}
@@ -252,8 +253,7 @@ class YarnAppMaster(rmClient: RMClient, nmClient: NMClient,
   private def launchMaster(container: Container): HostPort = {
     LOG.info(s"Launch Master on container " + container.getNodeHttpAddress)
     val host = container.getNodeId.getHost
-
-    val port = Util.findFreePort().get
+    val port = akkaConf.getString(MASTER_PORT).toInt
 
     LOG.info("=============PORT" + port)
     val masterCommand = MasterCommand(akkaConf, rootPath, HostPort(host, port))
@@ -280,6 +280,7 @@ class YarnAppMaster(rmClient: RMClient, nmClient: NMClient,
 
 object YarnAppMaster extends AkkaApp with ArgumentsParser {
   val LOG: Logger = LogUtil.getLogger(getClass)
+  val port = getReservedGearpumpAMPort(ClusterConfig.gear)
 
   override val options: Array[(String, CLIOption[Any])] = Array(
     "conf" -> CLIOption[String]("<Gearpump configuration directory on HDFS>", required = true),
@@ -287,7 +288,8 @@ object YarnAppMaster extends AkkaApp with ArgumentsParser {
   )
 
   override def akkaConfig: Config = {
-    ClusterConfig.ui()
+    ClusterConfig.ui().withValue("akka.remote.netty.tcp.port",
+      ConfigValueFactory.fromAnyRef(port))
   }
 
   override def main(akkaConf: Config, args: Array[String]): Unit = {
@@ -363,4 +365,9 @@ object YarnAppMaster extends AkkaApp with ArgumentsParser {
 
     AppMasterResolver.resolveAppMasterAddress(report, system)
   }
+
+  def getReservedGearpumpAMPort(akkaConfig: Config): Int = {
+    akkaConfig.getString(APPMASTER_PORT).toInt
+  }
+
 }

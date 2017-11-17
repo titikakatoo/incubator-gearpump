@@ -26,8 +26,10 @@ import org.apache.gearpump.util._
 class JarStoreServer(jarStoreRootPath: String) extends Actor with Stash {
   private val host = context.system.settings.config.getString(Constants.GEARPUMP_HOSTNAME)
   private val jarStore = JarStore.get(jarStoreRootPath)
-  jarStore.init(context.system.settings.config)
-  private val server = new FileServer(context.system, host, 0, jarStore)
+  private val akkaConf = context.system.settings.config
+  private val port = akkaConf.getString(Constants.GEARPUMP_APP_JAR_STORE_PORT).toInt
+  jarStore.init(akkaConf)
+  private val server = new FileServer(context.system, host, port, jarStore)
   implicit val timeout = Constants.FUTURE_TIMEOUT
   implicit val executionContext = context.dispatcher
 

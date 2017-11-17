@@ -43,6 +43,13 @@ import org.apache.gearpump.util.{Constants, FileUtils, LogUtil, Util}
  */
 
 object ClusterConfig {
+
+
+  def gear: Config = {
+    ConfigFactory.parseResourcesAnySyntax("gear.conf",
+      ConfigParseOptions.defaults.setAllowMissing(true))
+  }
+
   /**
    * alias for default
    * default is a reserved word for java

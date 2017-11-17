@@ -50,7 +50,7 @@ object Services extends AkkaApp with ArgumentsParser {
   override val description = "UI Server"
 
   override def akkaConfig: Config = {
-    ClusterConfig.ui()
+    ClusterConfig.ui().withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(0))
   }
 
   override def help(): Unit = {
@@ -67,6 +67,7 @@ object Services extends AkkaApp with ArgumentsParser {
     var akkaConf =
       if (argConfig.exists(Gear.OPTION_CONFIG)) {
         ClusterConfig.ui(argConfig.getString(Gear.OPTION_CONFIG))
+          .withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(0))
       } else {
         inputAkkaConf
       }

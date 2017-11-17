@@ -19,16 +19,17 @@
 package org.apache.gearpump.util
 
 import java.util.concurrent.{TimeUnit, TimeoutException}
+
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success, Try}
-
 import akka.actor._
-import com.typesafe.config.Config
+import com.typesafe.config.{Config, ConfigValueFactory}
 import org.slf4j.Logger
-
 import org.apache.gearpump.cluster.ClusterConfig
 import org.apache.gearpump.util.LogUtil.ProcessType
+
+import scala.collection.mutable
 
 /**
  * ActorSystemBooter start a new JVM process to boot an actor system.
@@ -49,6 +50,7 @@ class ActorSystemBooter(config: Config) {
 
 object ActorSystemBooter {
 
+  val reservedAppMasterPort = getReservedAppMasterPort(ClusterConfig.default())
   def apply(config: Config): ActorSystemBooter = new ActorSystemBooter(config)
 
   def main(args: Array[String]) {
@@ -72,7 +74,7 @@ object ActorSystemBooter {
       override def run(): Unit = {
         val LOG: Logger = LogUtil.getLogger(ActorSystemBooter.getClass)
         LOG.info("Maybe we have received a SIGINT signal from parent process, " +
-          "start to cleanup resources....")
+        "start to cleanup resources....")
         system.terminate()
       }
     })
@@ -88,19 +90,20 @@ object ActorSystemBooter {
   case class RegisterActorSystem(systemPath: String)
 
   /**
-   * This actor system will watch for parent,
-   * If parent dies, this will also die
-   */
+    * This actor system will watch for parent,
+    * If parent dies, this will also die
+    */
   case class ActorSystemRegistered(bindLifeWith: ActorRef)
   case class RegisterActorSystemFailed(reason: Throwable)
 
   object RegisterActorSystemTimeOut
 
   class Daemon(val name: String, reportBack: String) extends Actor {
+
     val LOG: Logger = LogUtil.getLogger(getClass, context = name)
 
     val username = Option(System.getProperty(Constants.GEARPUMP_USERNAME)).getOrElse("not_defined")
-    LOG.info(s"RegisterActorSystem to ${reportBack}, current user: $username")
+    LOG.info(s"/q to ${reportBack}, current user: $username")
 
     val reportBackActor = context.actorSelection(reportBack)
     reportBackActor ! RegisterActorSystem(ActorUtil.getSystemAddress(context.system).toString)
@@ -129,8 +132,12 @@ object ActorSystemBooter {
         LOG.info(s"ActorSystem $name Binding life cycle with actor: $actor")
         context.watch(actor)
       case create@CreateActor(props: Props, name: String) =>
-        LOG.info(s"creating actor $name")
-        val actor = Try(context.actorOf(props, name))
+        LOG.info(s"ActorSystemBooter creating actor $name")
+        val akkaConfig = context.system.settings.config
+          .withValue("akka.remote.netty.tcp.port",
+            ConfigValueFactory.fromAnyRef(reservedAppMasterPort))
+        val system = ActorSystem.create("AppMaster", akkaConfig)
+        val actor = Try(system.actorOf(props, name))
         actor match {
           case Success(actor) =>
             sender ! ActorCreated(actor, name)
@@ -148,5 +155,9 @@ object ActorSystemBooter {
       LOG.info(s"ActorSystem $name is shutting down...")
       context.system.terminate()
     }
+  }
+
+  def getReservedAppMasterPort(akkaConfig: Config): Int = {
+    akkaConfig.getString(Constants.GEARPUMP_APPMASTER_PORT).toInt
   }
 }
